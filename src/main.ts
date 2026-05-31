@@ -7,16 +7,28 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
   // Configure CORS from environment variable CORS_ORIGIN (comma-separated list)
-  const rawOrigins = process.env.CORS_ORIGIN;
-  const origins = rawOrigins
-    ? rawOrigins.split(',').map((o) => o.trim()).filter(Boolean)
-    : true;
+  const rawOrigins = process.env.CORS_ORIGIN ?? '';
+  // strip surrounding quotes (single or double), split and trim, remove trailing slashes
+  const allowedOrigins = rawOrigins
+    .replace(/^\s*["']?|["']?\s*$/g, '')
+    .split(',')
+    .map((o) => o.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  // Debug: print configured origins (helps diagnosing CORS during dev)
+  console.log('CORS allowed origins:', allowedOrigins.length ? allowedOrigins : '[any]');
+
+  // Use array-based origin list when configured, otherwise allow all origins in dev
+  const originOption = allowedOrigins.length ? allowedOrigins : true;
+
+  console.log('Using CORS origin option:', originOption);
 
   app.enableCors({
-    origin: origins,
+    origin: originOption,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    optionsSuccessStatus: 204,
   });
   app.useGlobalFilters(new AllExceptionsFilter());
 
