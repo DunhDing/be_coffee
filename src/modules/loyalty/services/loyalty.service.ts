@@ -6,10 +6,10 @@ import { RedeemPointDto } from '../dtos/redeem-point.dto';
 import { UpdateLoyaltyConfigDto } from '../dtos/update-loyalty-config.dto';
 import { LoyaltyRepository } from '../repo/loyalty.repository';
 
-type LoyaltyRank = 'MEMBER' | 'SILVER' | 'GOLD' | 'DIAMOND';
+type LoyaltyRank = 'BRONZE' | 'SILVER' | 'GOLD' | 'DIAMOND';
 
 type RankDistribution = {
-    member: number;
+    bronze: number;
     silver: number;
     gold: number;
     diamond: number;
@@ -368,7 +368,7 @@ export class LoyaltyService {
         if (totalSpent >= 3000000) return 'GOLD';
         if (totalSpent >= 1000000) return 'SILVER';
 
-        return 'MEMBER';
+        return 'BRONZE';
     }
 
     getMultiplier(rank: LoyaltyRank): number {
@@ -470,7 +470,7 @@ export class LoyaltyService {
                 totalCustomers: customers.length,
                 totalPointsIssued: issued._sum.point_change ?? 0,
                 totalPointsRedeemed: Math.abs(redeemed._sum.point_change ?? 0),
-                memberCount: distribution.member,
+                bronzeCount: distribution.bronze,
                 silverCount: distribution.silver,
                 goldCount: distribution.gold,
                 diamondCount: distribution.diamond,
@@ -497,12 +497,12 @@ export class LoyaltyService {
                 if (rank === 'DIAMOND') distribution.diamond += 1;
                 if (rank === 'GOLD') distribution.gold += 1;
                 if (rank === 'SILVER') distribution.silver += 1;
-                if (rank === 'MEMBER') distribution.member += 1;
+                if (rank === 'BRONZE') distribution.bronze += 1;
 
                 return distribution;
             },
             {
-                member: 0,
+                bronze: 0,
                 silver: 0,
                 gold: 0,
                 diamond: 0,
