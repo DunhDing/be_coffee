@@ -57,6 +57,13 @@ export class AuthService {
                 });
             }
 
+            if (account.role?.role_name === 'Customer') {
+                throw new UnauthorizedException({
+                    code: ErrorCodes.INVALID_CREDENTIALS,
+                    message: 'Invalid username or password',
+                });
+            }
+
             let isPasswordValid = false;
 
             try {
@@ -116,11 +123,7 @@ export class AuthService {
             }
 
             // Get role info
-            let roleName = 'Staff';
-            if (account.role_id) {
-                const role = await this.prisma.role.findUnique({ where: { role_id: account.role_id } });
-                roleName = role?.role_name ?? 'Staff';
-            }
+            const roleName = account.role?.role_name ?? 'Staff';
 
             return {
                 code: ErrorCodes.SUCCESS,
@@ -253,6 +256,13 @@ export class AuthService {
             });
         }
 
+        if (account.role?.role_name !== 'Customer') {
+            throw new UnauthorizedException({
+                code: ErrorCodes.INVALID_CREDENTIALS,
+                message: 'Invalid phone or password',
+            });
+        }
+
         const isPasswordValid = await bcrypt.compare(dto.password, account.password_hash);
         if (!isPasswordValid) {
             throw new UnauthorizedException({
@@ -283,8 +293,8 @@ export class AuthService {
         const points = customer.total_points ?? 0;
         const loyaltyTier =
             points >= 1000 ? 'Diamond' :
-            points >= 500 ? 'Gold' :
-            points >= 200 ? 'Silver' : 'Bronze';
+                points >= 500 ? 'Gold' :
+                    points >= 200 ? 'Silver' : 'Bronze';
 
         return {
             code: ErrorCodes.SUCCESS,
