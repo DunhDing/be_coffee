@@ -24,7 +24,12 @@ export class BranchMenuService {
 
     async create(dto: CreateBranchMenuDto) {
         try {
-            if (!dto.local_price) throw new BadRequestException({ code: ErrorCodes.BAD_REQUEST, message: 'local_price is required' });
+            if (dto.local_price === undefined || dto.local_price === null) {
+                throw new BadRequestException({ code: ErrorCodes.BAD_REQUEST, message: 'local_price is required' });
+            }
+            if (dto.local_price <= 0) {
+                throw new BadRequestException({ code: ErrorCodes.BAD_REQUEST, message: 'local_price must be greater than 0' });
+            }
             if (!dto.branch_id) throw new BadRequestException({ code: ErrorCodes.BAD_REQUEST, message: 'branch_id is required' });
             if (!dto.product_id) throw new BadRequestException({ code: ErrorCodes.BAD_REQUEST, message: 'product_id is required' });
 
@@ -81,6 +86,10 @@ export class BranchMenuService {
 
             const existing = await this.branchMenuRepository.findById(id);
             if (!existing) throw new NotFoundException({ code: ErrorCodes.NOT_FOUND, message: `Branch menu with ID "${id}" not found` });
+
+            if (dto.local_price !== undefined && dto.local_price !== null && dto.local_price <= 0) {
+                throw new BadRequestException({ code: ErrorCodes.BAD_REQUEST, message: 'local_price must be greater than 0' });
+            }
 
             const updated = await this.branchMenuRepository.update(id, {
                 local_price: dto.local_price,
