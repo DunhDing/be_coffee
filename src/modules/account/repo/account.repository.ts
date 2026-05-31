@@ -8,6 +8,7 @@ export class AccountRepository {
     findByUsername(username: string) {
         return this.prisma.account.findUnique({
             where: { username },
+            include: { role: true },
         });
     }
 
