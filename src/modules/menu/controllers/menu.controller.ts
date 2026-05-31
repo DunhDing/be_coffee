@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../cache/redis.service';
 
 /**
  * /menu — Public endpoint for customers to see available products by branch
@@ -10,12 +11,18 @@ import { PrismaService } from '../../prisma/prisma.service';
 @ApiTags('menu')
 @Controller('menu')
 export class MenuController {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService, private readonly redis: RedisService) { }
 
     @Get()
     @ApiOperation({ summary: 'Get menu products with branch availability' })
     @ApiQuery({ name: 'branchId', required: false, type: String })
     async getMenu(@Query('branchId') branchId?: string) {
+        const cacheKey = `menu:all${branchId ? `:branch:${branchId}` : ''}`;
+        const cached = await this.redis.get(cacheKey);
+        if (cached) {
+            return { message: 'Menu retrieved successfully (cache)', data: cached };
+        }
+
         // Get all branch_menu entries with product info
         const branchMenus = await this.prisma.branch_menu.findMany({
             include: {
@@ -60,6 +67,9 @@ export class MenuController {
         if (branchId) {
             products = products.filter((p) => p.availableBranchIds.includes(branchId));
         }
+
+        // cache for 5 minutes
+        await this.redis.set(cacheKey, products, 300);
 
         return {
             message: 'Menu retrieved successfully',

@@ -98,7 +98,7 @@ export class CustomerRepository {
      * Find a customer by email
      */
     findByEmail(email: string) {
-        return this.prisma.customer.findFirst({
+        return this.prisma.customer.findUnique({
             where: { email },
             select: {
                 customer_id: true,
@@ -115,7 +115,7 @@ export class CustomerRepository {
      * Find a customer by phone number
      */
     findByPhone(phoneNumber: string) {
-        return this.prisma.customer.findFirst({
+        return this.prisma.customer.findUnique({
             where: { phone_number: phoneNumber },
             select: {
                 customer_id: true,

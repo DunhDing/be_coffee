@@ -18,6 +18,8 @@ model account {
   customer      customer[]
   employee      employee[]
   token         token[]
+
+  @@index([created_at])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -32,6 +34,9 @@ model branch {
   branch_menu      branch_menu[]
   employee         employee[]
   orders           orders[]
+
+  @@index([branch_name])
+  @@index([status])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -44,6 +49,7 @@ model branch_menu {
   product     product? @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([product_id, branch_id], map: "uk_product_branch")
+  @@index([branch_id])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -57,6 +63,10 @@ model customer {
   account       account         @relation(fields: [account_id], references: [account_id], onDelete: NoAction, onUpdate: NoAction)
   orders        orders[]
   point_history point_history[]
+
+  @@index([account_id])
+  @@index([full_name])
+  @@index([total_points])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -74,6 +84,10 @@ model employee {
   account      account?  @relation(fields: [account_id], references: [account_id], onDelete: NoAction, onUpdate: NoAction)
   branch       branch?   @relation(fields: [branch_id], references: [branch_id], onDelete: NoAction, onUpdate: NoAction)
   orders       orders[]
+
+  @@index([account_id])
+  @@index([branch_id])
+  @@index([full_name])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -122,6 +136,11 @@ model orders {
   payment_method   payment_method? @relation(fields: [payment_id], references: [payment_id], onDelete: NoAction, onUpdate: NoAction)
   payment          payment[]
   point_history    point_history[]
+
+  @@index([order_date])
+  @@index([branch_id, order_date])
+  @@index([customer_id, order_date])
+  @@index([status, order_date])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -130,6 +149,9 @@ model payment {
   order_id   String         @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   status     payment_status
   orders     orders         @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([order_id])
+  @@index([order_id, status])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -150,6 +172,7 @@ model point_history {
   orders       orders?   @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([customer_id, order_id], map: "uk_customer_order")
+  @@index([customer_id, created_at])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -185,6 +208,8 @@ model token {
   token_id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   account_id String?  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   account    account? @relation(fields: [account_id], references: [account_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([account_id])
 }
 
 enum payment_status {
