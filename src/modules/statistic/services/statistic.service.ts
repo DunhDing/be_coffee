@@ -38,7 +38,7 @@ function startOfMonth(d: Date) {
   return dt;
 }
 
-import { RedisService } from '../cache/redis.service';
+import { RedisService } from '../../cache/redis.service';
 
 @Injectable()
 export class StatisticService {
