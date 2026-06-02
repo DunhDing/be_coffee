@@ -3,12 +3,14 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderRepository } from './order.repository';
 import { LoyaltyService } from '../loyalty/services/loyalty.service';
+import { RedisService } from '../cache/redis.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     private readonly orderRepository: OrderRepository,
-    private readonly loyaltyService: LoyaltyService
+    private readonly loyaltyService: LoyaltyService,
+    private readonly redis: RedisService
   ) {}
 
   /**
@@ -135,11 +137,18 @@ export class OrderService {
    * GET /orders/my — customer get their own orders (by customerId from JWT)
    */
   async findMyOrders(customerId: string) {
+    const cacheKey = `orders:customer:${customerId}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) return cached as any;
+
     const orders = await this.orderRepository.findByCustomerId(customerId);
-    return {
+    const result = {
       message: 'Orders retrieved successfully',
       data: orders.map((o) => this.toResponse(o)),
     };
+
+    await this.redis.set(cacheKey, result, 30); // Cache for 30 seconds
+    return result;
   }
 
   /**

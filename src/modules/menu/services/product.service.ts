@@ -70,6 +70,13 @@ export class ProductService {
     async findAll(query: PaginationQueryDto): Promise<PaginatedResult<ProductResponseDto>> {
         try {
             const { page = 1, limit = 10 } = query;
+            const cacheKey = `product:all:page:${page}:limit:${limit}`;
+            
+            const cached = await this.redis.get(cacheKey);
+            if (cached) {
+                return cached as PaginatedResult<ProductResponseDto>;
+            }
+
             const skip = PaginationUtil.getSkip(page, limit);
 
             const [products, totalItems] = await Promise.all([
@@ -77,11 +84,14 @@ export class ProductService {
                 this.productRepository.count(),
             ]);
 
-            return {
+            const result = {
                 message: 'Products retrieved successfully',
                 data: products.map((p) => this.toResponse(p)),
                 pagination: PaginationUtil.getPaginationMetadata(page, limit, totalItems),
             };
+
+            await this.redis.set(cacheKey, result, 60); // Cache for 60 seconds
+            return result;
         } catch (error) {
             throw new BadRequestException({ code: ErrorCodes.BAD_REQUEST, message: 'Failed to retrieve products' });
         }
@@ -168,18 +178,24 @@ export class ProductService {
             const { page = 1, limit = 10 } = query;
             const skip = PaginationUtil.getSkip(page, limit);
 
-            // Let's assume search can be by name only for now as 'id' is not in SearchProductDto
             if (query.name) {
+                const cacheKey = `product:search:name:${query.name}:page:${page}:limit:${limit}`;
+                const cached = await this.redis.get(cacheKey);
+                if (cached) return cached as any;
+
                 const [products, totalItems] = await Promise.all([
                     this.productRepository.searchByName(query.name, skip, limit),
                     this.productRepository.countByName(query.name),
                 ]);
 
-                return {
+                const result = {
                     message: 'Products retrieved successfully',
                     data: products.map((p) => this.toResponse(p)),
                     pagination: PaginationUtil.getPaginationMetadata(page, limit, totalItems),
                 };
+
+                await this.redis.set(cacheKey, result, 60); // Cache for 60 seconds
+                return result;
             }
 
             // If no name is provided, just return paginated all products (or throw an error)

@@ -38,9 +38,14 @@ function startOfMonth(d: Date) {
   return dt;
 }
 
+import { RedisService } from '../cache/redis.service';
+
 @Injectable()
 export class StatisticService {
-  constructor(private readonly repo: StatisticRepository) {}
+  constructor(
+    private readonly repo: StatisticRepository,
+    private readonly redis: RedisService
+  ) {}
 
   private computeRange(period: Period, anchor?: string) {
     const date = parseDate(anchor);
@@ -130,6 +135,10 @@ export class StatisticService {
    */
   async getDashboardStats() {
     try {
+      const cacheKey = 'statistics:dashboard';
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return cached as any;
+
       const today = startOfDay(new Date());
       const tomorrow = addDays(today, 1);
       const yesterday = addDays(today, -1);
@@ -156,7 +165,7 @@ export class StatisticService {
       // New customers today
       const newCustomers = await this.repo.countNewCustomersToday(today, tomorrow);
 
-      return {
+      const result = {
         revenueToday,
         revenueGrowth,
         ordersToday,
@@ -165,6 +174,9 @@ export class StatisticService {
         newCustomers,
         activeBranches,
       };
+
+      await this.redis.set(cacheKey, result, 60); // Cache for 60 seconds
+      return result;
     } catch (err) {
       throw new InternalServerErrorException('Failed to fetch dashboard stats');
     }
